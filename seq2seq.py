@@ -122,17 +122,19 @@ def train(model, train_data):
     Runs through one epoch all the training batches
     :param model: The model we build
     :param train_data: Data used for training
-    :return l_list: List of losses across batches
+    :return l_list, num_non_pad: List of losses across batches, number of unpadded words
     '''
     l_list = []
+    num_non_pad = 0
     for i, batch in enumerate(train_data):
         model.optimizer.zero_grad()
         probs = model.call(batch.src, batch.trg)
         batch_loss = model.loss_function(probs, batch.trg)
+        num_non_pad += np.sum(np.where(batch.trg.numpy() == model.trg_pad_index, False, True))
         l_list.append(batch_loss.item())
         batch_loss.backward() 
         model.optimizer.step()
-    return l_list
+    return l_list, num_non_pad
 
 def valid(model, valid_data):
     '''
@@ -148,15 +150,17 @@ def test(model, test_data, src_vocab, trg_vocab):
     Testing & visualize results
     '''
     for i, batch in enumerate(test_data):
-        if i == 0:
-            with th.no_grad():
-                probs = model.call(batch.src, batch.trg)
-                source = th.transpose(batch.trg, dim0=0, dim1=1)
-                preds = th.transpose(th.argmax(probs, dim=2), dim0=0, dim1=1)
-                s = [src_vocab[index][0] for index in source[0]]
-                r = [trg_vocab[index][0] for index in preds[0]]
-                print(' '.join(s))
-                print(' '.join(r))    
+        with th.no_grad():
+            probs = model.call(batch.src, batch.trg)
+            source = th.transpose(batch.src, dim0=0, dim1=1)
+            labels = th.transpose(batch.trg, dim0=0, dim1=1)
+            preds = th.transpose(th.argmax(probs, dim=2), dim0=0, dim1=1)
+            s = [src_vocab[index][0] for index in source[0]]
+            l = [trg_vocab[index][0] for index in labels[0]]
+            r = [trg_vocab[index][0] for index in preds[0]]
+            print(' '.join(s[::-1]))
+            print(' '.join(l))
+            print(' '.join(r))    
 
 def visualize_loss(l_list):
     '''
@@ -181,14 +185,16 @@ def main():
     src_vocab_size, trg_vocab_size, train_data, valid_data, test_data, trg_pad_index, src_vocab, trg_vocab = preprocess(device, batch_size)
     model = seq2seq(src_vocab_size, trg_vocab_size, batch_size, trg_pad_index)
     l_list = []
-    for epoch in range(10):
+    for epoch in range(2):
         start = time.time()
-        l_list += train(model, train_data)
+        l, num_non_pad= train(model, train_data)
+        l_list += l
+        p = np.exp(sum(l) / num_non_pad)
         acc = valid(model, valid_data)
         end = time.time()
         minutes, seconds = epoch_time(start, end)
-        print(f'Epoch {epoch+1}, time used: {minutes}m{seconds}sec accuracy is {acc}.')
-        # th.save(model.state_dict(), 'seq2seqmodel.pt')
+        print(f'Epoch {epoch+1}, time used: {minutes}m{seconds}sec, perplexity is {p}, accuracy is {acc}.')
+        th.save(model.state_dict(), 'Seq2SeqModel.pt')
     visualize_loss(l_list)
     l_src = list(src_vocab.items())
     l_trg = list(trg_vocab.items())
