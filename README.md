@@ -6,7 +6,7 @@ Implementation of classic models in pytorch. Prior to executing any file, please
     - Accuracy over 97.5% after 10 epochs. 
 - Seq2seq: sequence to sequence machine translation
     - Data is loaded with torchtext.dataset, available on [this site](https://github.com/multi30k/dataset)
-    - Obtain low perplexity (one-digit number) and high accuracy after around 10 epochs. 
+    - Obtain low perplexity (one-digit number) and high accuracy after around 3 epochs. 
     - Feel free to choose different combinations of source and target languages. 
     - There are two implementations of the same model:
         - seq2seq.py: the code for forward pass and accuracy presented. 
