@@ -49,6 +49,20 @@ class seq2seq(th.nn.Module):
         _, (encoder_memory_state, encoder_carrier_state) = self.encoder(src_embeddings)
         decoded, (_, _) = self.decoder(trg_embeddings, (encoder_memory_state, encoder_carrier_state))
         return self.softmax_layer(self.ff_layer(decoded))
+    
+    def predict(self, encoder_input):
+        '''
+        Attempt to make open-ended predictions. (failed)
+        Open for discussion of implementation. Contact me. 
+        '''
+        # Get Embeddings
+        src_embeddings = self.src_embedding(encoder_input)
+
+        # Encode and Decode
+        output, (encoder_memory_state, encoder_carrier_state) = self.encoder(src_embeddings)
+        print(output.shape)
+        decoded, (_, _) = self.decoder(output, (encoder_memory_state, encoder_carrier_state))
+        return self.softmax_layer(self.ff_layer(decoded))
 
     def loss_function(self, probs, labels):
         '''
@@ -184,6 +198,7 @@ def main():
     batch_size = 50
     src_vocab_size, trg_vocab_size, train_data, valid_data, test_data, trg_pad_index, src_vocab, trg_vocab = preprocess(device, batch_size)
     model = seq2seq(src_vocab_size, trg_vocab_size, batch_size, trg_pad_index)
+    # model.load_state_dict(th.load('seq2seqmodel.pt')) # use when running later
     l_list = []
     for epoch in range(2):
         start = time.time()
